@@ -20,7 +20,7 @@ const {
 const { nutritionOf, randomSpeciesByTier, MAX_TIER } = require("./species");
 
 // 목표 개체수 (세션 활력 유지) — 상호작용 밀도를 위해 상향
-const TARGET_FOOD = 160; // 생산자
+const TARGET_FOOD = 320; // 생산자 (기존의 2배)
 const TARGET_AI_BY_TIER = {
   1: 40,
   2: 20,
