@@ -60,8 +60,10 @@ const TICK_MS = 1000 / TICK_HZ;
 let lastTick = Date.now();
 
 // 먹이(생산자) 흡입(자석) 효과
-const FOOD_SUCTION_RANGE = 220; // 이 거리 안이면 빨려 들어감
-const FOOD_SUCTION_SPEED = 520; // world unit / sec
+// "먹이"로 보이는 생산자(식물)는 근처에 오면 끌려오게 하되,
+// 실제 섭취(점수/포만감)는 canEat 규칙을 그대로 따른다.
+const FOOD_SUCTION_RANGE = 520; // 이 거리 안이면 빨려 들어감
+const FOOD_SUCTION_SPEED = 980; // world unit / sec
 
 function tick() {
   const now = Date.now();
@@ -92,8 +94,8 @@ function tick() {
       let dy = p.y - f.y;
       let d = Math.hypot(dx, dy);
 
-      // 가까운 먹이는 플레이어 쪽으로 끌려온다 (먹을 수 있는 경우에만)
-      if (d > 0 && d < FOOD_SUCTION_RANGE && canEat(p.speciesId, f.speciesId)) {
+      // 가까운 생산자(식물)는 플레이어 쪽으로 끌려온다
+      if (d > 0 && d < FOOD_SUCTION_RANGE) {
         const step = Math.min(d, FOOD_SUCTION_SPEED * dt);
         f.x += (dx / d) * step;
         f.y += (dy / d) * step;
