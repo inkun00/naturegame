@@ -62,6 +62,8 @@ let lastTick = Date.now();
 // 1차 소비자만, 아주 가까운 "생산자(식물)" 흡입
 const PRODUCER_SUCTION_RANGE = 70; // 아주 가까운 거리
 const PRODUCER_SUCTION_SPEED = 520; // world unit / sec
+// 생산자(식물) 섭취 판정은 플레이어 크기에 비례하지 않도록 고정 거리로 제한
+const PRODUCER_EAT_EXTRA_RANGE = 12; // 식물 반지름 + 보정치
 
 function tick() {
   const now = Date.now();
@@ -109,7 +111,9 @@ function tick() {
         dy = p.y - f.y;
         d = Math.hypot(dx, dy);
       }
-      if (d < p.radius + f.radius - 2) {
+      // 생산자 섭취 거리: 플레이어 반지름을 쓰지 않고, 식물 크기 기반으로만 판정
+      const eatRange = f.radius + PRODUCER_EAT_EXTRA_RANGE;
+      if (d < eatRange) {
         if (canEat(p.speciesId, f.speciesId)) {
           feedPlayer(p, f.speciesId);
           removeFood(f.id);
