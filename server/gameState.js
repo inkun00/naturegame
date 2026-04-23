@@ -29,6 +29,7 @@ const HEAL_ON_EAT = 8;
 const SPAWN_MARGIN = 80;
 const MAX_LEVEL = 60;
 const FOOD_DECAY_MS = 45_000; // 오랫동안 먹히지 않으면 부패
+const SATIETY_GAIN_MULT = 2; // 레벨업까지 필요한 섭취 횟수를 1/2로
 
 /**
  * @typedef {Object} Player
@@ -225,7 +226,8 @@ function feedPlayer(p, preySpeciesId) {
   const tierDiff =
     preySpecies != null ? p.tier - preySpecies.tier : 1;
   // 2단계 이상 차이나는 하위 먹이는 포만감 이득을 1/5 로 감소
-  const satietyGain = tierDiff > 1 ? baseGain / 5 : baseGain;
+  const satietyGainBase = tierDiff > 1 ? baseGain / 5 : baseGain;
+  const satietyGain = satietyGainBase * SATIETY_GAIN_MULT;
 
   p.satiety = Math.min(MAX_SATIETY, p.satiety + satietyGain);
   p.energy = Math.min(MAX_ENERGY, p.energy + HEAL_ON_EAT);
