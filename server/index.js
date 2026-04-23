@@ -62,7 +62,7 @@ let lastTick = Date.now();
 // 먹이(생산자) 흡입(자석) 효과
 // "먹이"로 보이는 생산자(식물)는 근처에 오면 끌려오게 하되,
 // 실제 섭취(점수/포만감)는 canEat 규칙을 그대로 따른다.
-const FOOD_SUCTION_RANGE = 520; // 이 거리 안이면 빨려 들어감
+const FOOD_SUCTION_RANGE = 104; // 이 거리 안이면 빨려 들어감 (기존의 1/5)
 const FOOD_SUCTION_SPEED = 980; // world unit / sec
 
 function tick() {
