@@ -67,6 +67,22 @@ const PRODUCER_SUCTION_SPEED = 520; // world unit / sec
 // 생산자(식물) 섭취 판정은 플레이어 크기에 비례하지 않도록 고정 거리로 제한
 const PRODUCER_EAT_EXTRA_RANGE = 12; // 식물 반지름 + 보정치
 
+function energyDrainPerSecByTier(tier) {
+  // 상위 소비자일수록 조금씩 더 빠르게 감소
+  switch (tier) {
+    case 1:
+      return 2.2;
+    case 2:
+      return 2.7;
+    case 3:
+      return 3.2;
+    case 4:
+      return 3.8;
+    default:
+      return 0;
+  }
+}
+
 function tick() {
   const now = Date.now();
   const dt = Math.min(0.1, (now - lastTick) / 1000);
@@ -85,6 +101,21 @@ function tick() {
 
   // 2. AI 이동
   for (const a of state.ais.values()) stepAI(a, dt);
+
+  // 2.5 모든 소비자(플레이어/AI) 에너지 자연 감소
+  for (const p of state.players.values()) {
+    if (!p.alive) continue;
+    const drain = energyDrainPerSecByTier(p.tier) * dt;
+    p.energy -= drain;
+  }
+  for (const a of state.ais.values()) {
+    if (!a.alive) continue;
+    const drain = energyDrainPerSecByTier(a.tier) * dt;
+    a.energy = (a.energy ?? 100) - drain;
+    if (a.energy <= 0) {
+      removeAI(a.id);
+    }
+  }
 
   // 3. AI 간 상호작용 (생산자 섭취, AI 끼리 사냥)
   resolveAIInteractions();

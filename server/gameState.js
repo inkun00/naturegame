@@ -27,6 +27,8 @@ const MAX_SATIETY = 100;
 const DAMAGE_PER_TICK_FROM_PREDATOR = 0.6; // 상위 포식자와 겹쳐있을 때 틱당 감소
 const HEAL_ON_EAT = 8;
 const SPAWN_MARGIN = 80;
+// 레벨은 "해당 소비자 단계(tier) 안에서 작은 생물→큰 생물" 진행도
+// (tier를 고정한 채, 레벨업 시 같은 tier 내 다음 생물로 변경)
 const MAX_LEVEL = 60;
 const FOOD_DECAY_MS = 45_000; // 오랫동안 먹히지 않으면 부패
 const SATIETY_GAIN_MULT = 2; // 레벨업까지 필요한 섭취 횟수를 1/2로
@@ -69,46 +71,26 @@ function randomSpawnPos() {
   };
 }
 
-function tierByLevel(level) {
-  if (level <= 15) return 1; // 1차 소비자
-  if (level <= 30) return 2; // 2차 소비자
-  if (level <= 45) return 3; // 3차 소비자
-  return 4; // 4차 소비자
+function randomStartTier() {
+  // 시작 시 1~4차 소비자 중 하나를 랜덤 선택
+  return 1 + Math.floor(Math.random() * 4);
 }
 
-function levelsInTier(_tier) {
-  return 15;
+function speciesPoolTierForConsumerTier(tier) {
+  // 데이터상 tier 0~3까지만 있으므로 4차 소비자는 tier 3 풀을 재사용
+  return tier === 4 ? 3 : tier;
 }
 
-function tierStartLevel(tier) {
-  if (tier === 1) return 1;
-  if (tier === 2) return 16;
-  if (tier === 3) return 31;
-  if (tier === 4) return 46;
-  return 1;
-}
-
-/**
- * 레벨→종 매핑 규칙
- * - 같은 tier(구간) 안에서 해당 tier 생물들을 "크기(반지름)" 오름차순으로 정렬
- * - 레벨이 올라갈수록 더 큰 생물이 되도록 인덱스를 증가시킨다
- */
-function speciesForLevel(level) {
-  const tier = tierByLevel(level);
-  const span = levelsInTier(tier);
-  const start = tierStartLevel(tier);
-  const offset = Math.max(0, Math.min(span - 1, level - start)); // 0~14
-
-  // tier 4는 종 데이터상 tier 3 풀을 재사용한다 (server/species.js에서 BY_TIER[4]=BY_TIER[3]).
-  const speciesTier = tier === 4 ? 3 : tier;
+function orderedSpeciesByTier(tier) {
+  const speciesTier = speciesPoolTierForConsumerTier(tier);
   const list = SPECIES.filter((s) => s.tier === speciesTier).slice();
   list.sort((a, b) => radiusOf(a) - radiusOf(b));
-  if (list.length === 0) return { tier, species: null };
+  return list;
+}
 
-  // 구간(15레벨) 안에서 list를 고르게 샘플링 (단조 증가, 사실상 중복 없이)
-  const step = list.length / span;
-  const idx = Math.min(list.length - 1, Math.floor(offset * step));
-  return { tier, species: list[idx] || list[list.length - 1] };
+function maxLevelForTier(tier) {
+  const list = orderedSpeciesByTier(tier);
+  return Math.max(1, list.length);
 }
 
 function clampWorld(obj) {
@@ -122,10 +104,10 @@ function clampWorld(obj) {
 // ============== Player ==============
 
 function addPlayer(socketId, nickname) {
+  const tier = randomStartTier();
+  const list = orderedSpeciesByTier(tier);
   const level = 1;
-  const mapped = speciesForLevel(level);
-  const tier = mapped.tier;
-  const species = mapped.species || randomSpeciesByTier(tier);
+  const species = list[0] || randomSpeciesByTier(tier);
   const pos = randomSpawnPos();
   const player = {
     id: socketId,
@@ -177,26 +159,25 @@ function applyInput(socketId, input) {
   }
 }
 
-/** 플레이어 성장: 레벨 1~60. 레벨 구간에 따라 1~4차 소비자 단계(tier)가 결정된다. */
+/** 플레이어 성장: 같은 소비자 단계(tier) 안에서 작은 생물 → 큰 생물 순서로 진행 */
 function evolvePlayer(p) {
-  const prevLevel = p.level || 1;
+  const tier = p.tier || 1;
+  const list = orderedSpeciesByTier(tier);
+  const maxLevel = Math.max(1, list.length);
+  const prevLevel = Math.max(1, Math.min(maxLevel, p.level || 1));
 
-  if (prevLevel >= MAX_LEVEL) {
-    // 레벨 60에서 포만감 가득 채우면 보너스만 주고 포만감 리셋
+  if (prevLevel >= maxLevel) {
+    // 해당 단계 최종 생물 상태에서 포만감 가득 채우면 보너스만 주고 포만감 리셋
     p.score += 200;
     p.satiety = 0;
     return;
   }
 
   const nextLevel = prevLevel + 1;
-  const mapped = speciesForLevel(nextLevel);
-  const nextTier = mapped.tier;
-  const nextSpecies = mapped.species;
+  const nextSpecies = list[nextLevel - 1] || list[list.length - 1] || null;
 
   p.level = nextLevel;
-  p.tier = nextTier;
 
-  // 레벨업할 때마다 "크기 순서"에 맞는 다른 생물로 변경
   if (nextSpecies) {
     p.speciesId = nextSpecies.id;
     p.radius = radiusOf(nextSpecies);
@@ -205,8 +186,9 @@ function evolvePlayer(p) {
     if (cur) p.radius = radiusOf(cur);
   }
 
-  p.speed = speedOf(nextTier);
+  p.speed = speedOf(tier);
   p.satiety = 0;
+  // 레벨업은 회복 보너스
   p.energy = MAX_ENERGY;
   p.score += 10 * nextLevel;
 }
