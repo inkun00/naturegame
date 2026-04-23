@@ -60,7 +60,7 @@ const TICK_MS = 1000 / TICK_HZ;
 let lastTick = Date.now();
 
 // 1차 소비자만, 아주 가까운 "생산자(식물)" 흡입
-const PRODUCER_SUCTION_RANGE = 90; // 아주 가까운 거리
+const PRODUCER_SUCTION_RANGE = 140; // 아주 가까운 거리 (소폭 증가)
 const PRODUCER_SUCTION_SPEED = 520; // world unit / sec
 
 function tick() {
@@ -92,9 +92,13 @@ function tick() {
       let dy = p.y - f.y;
       let d = Math.hypot(dx, dy);
 
-      // 1차 소비자일 때만, 생산자가 아주 가까우면 살짝 끌려온다.
-      // 실제 섭취(포만감/점수)는 아래의 canEat 규칙을 그대로 따른다.
-      if (p.tier === 1 && d > 0 && d < PRODUCER_SUCTION_RANGE) {
+      // 1차 소비자일 때만, "먹이가 되는 생산자"가 아주 가까우면 살짝 끌려온다.
+      if (
+        p.tier === 1 &&
+        d > 0 &&
+        d < PRODUCER_SUCTION_RANGE &&
+        canEat(p.speciesId, f.speciesId)
+      ) {
         const step = Math.min(d, PRODUCER_SUCTION_SPEED * dt);
         f.x += (dx / d) * step;
         f.y += (dy / d) * step;
