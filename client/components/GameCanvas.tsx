@@ -298,7 +298,8 @@ export default function GameCanvas({ snapshot, myId, world }: Props) {
     if (nickname && typeof heading === "number") {
       ctx.save();
       ctx.translate(x, y + 1);
-      ctx.rotate(heading);
+      // 이모지 기본 방향이 체감상 반대로 보여 180도 보정
+      ctx.rotate(heading + Math.PI);
       ctx.fillText(sp.emoji, 0, 0);
       ctx.restore();
     } else {
