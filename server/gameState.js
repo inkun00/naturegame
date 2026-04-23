@@ -6,6 +6,7 @@
  */
 
 const {
+  SPECIES,
   randomSpeciesByTier,
   canEat,
   nutritionOf,
@@ -73,6 +74,41 @@ function tierByLevel(level) {
   return 4; // 4차 소비자
 }
 
+function levelsInTier(_tier) {
+  return 15;
+}
+
+function tierStartLevel(tier) {
+  if (tier === 1) return 1;
+  if (tier === 2) return 16;
+  if (tier === 3) return 31;
+  if (tier === 4) return 46;
+  return 1;
+}
+
+/**
+ * 레벨→종 매핑 규칙
+ * - 같은 tier(구간) 안에서 해당 tier 생물들을 "크기(반지름)" 오름차순으로 정렬
+ * - 레벨이 올라갈수록 더 큰 생물이 되도록 인덱스를 증가시킨다
+ */
+function speciesForLevel(level) {
+  const tier = tierByLevel(level);
+  const span = levelsInTier(tier);
+  const start = tierStartLevel(tier);
+  const offset = Math.max(0, Math.min(span - 1, level - start)); // 0~14
+
+  // tier 4는 종 데이터상 tier 3 풀을 재사용한다 (server/species.js에서 BY_TIER[4]=BY_TIER[3]).
+  const speciesTier = tier === 4 ? 3 : tier;
+  const list = SPECIES.filter((s) => s.tier === speciesTier).slice();
+  list.sort((a, b) => radiusOf(a) - radiusOf(b));
+  if (list.length === 0) return { tier, species: null };
+
+  // 구간(15레벨) 안에서 list를 고르게 샘플링 (단조 증가, 사실상 중복 없이)
+  const step = list.length / span;
+  const idx = Math.min(list.length - 1, Math.floor(offset * step));
+  return { tier, species: list[idx] || list[list.length - 1] };
+}
+
 function clampWorld(obj) {
   const r = obj.radius ?? 16;
   if (obj.x < r) obj.x = r;
@@ -85,8 +121,9 @@ function clampWorld(obj) {
 
 function addPlayer(socketId, nickname) {
   const level = 1;
-  const tier = tierByLevel(level);
-  const species = randomSpeciesByTier(tier);
+  const mapped = speciesForLevel(level);
+  const tier = mapped.tier;
+  const species = mapped.species || randomSpeciesByTier(tier);
   const pos = randomSpawnPos();
   const player = {
     id: socketId,
@@ -140,7 +177,6 @@ function applyInput(socketId, input) {
 
 /** 플레이어 성장: 레벨 1~60. 레벨 구간에 따라 1~4차 소비자 단계(tier)가 결정된다. */
 function evolvePlayer(p) {
-  const prevTier = p.tier;
   const prevLevel = p.level || 1;
 
   if (prevLevel >= MAX_LEVEL) {
@@ -151,20 +187,18 @@ function evolvePlayer(p) {
   }
 
   const nextLevel = prevLevel + 1;
-  const nextTier = tierByLevel(nextLevel);
+  const mapped = speciesForLevel(nextLevel);
+  const nextTier = mapped.tier;
+  const nextSpecies = mapped.species;
 
   p.level = nextLevel;
   p.tier = nextTier;
 
-  // 단계(tier)가 바뀌는 구간에서만 새로운 종으로 매칭
-  if (nextTier !== prevTier) {
-    const next = randomSpeciesByTier(nextTier);
-    if (next) {
-      p.speciesId = next.id;
-      p.radius = radiusOf(next);
-    }
+  // 레벨업할 때마다 "크기 순서"에 맞는 다른 생물로 변경
+  if (nextSpecies) {
+    p.speciesId = nextSpecies.id;
+    p.radius = radiusOf(nextSpecies);
   } else {
-    // 종은 유지하되, 혹시 모를 반지름 변화를 방지하기 위해 현재 종으로 재계산
     const cur = getSpecies(p.speciesId);
     if (cur) p.radius = radiusOf(cur);
   }
