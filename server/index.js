@@ -88,6 +88,8 @@ function tick() {
 
     // 생산자(foods) 섭취 — 실제 먹이 관계인 경우에만
     for (const f of state.foods.values()) {
+      // 안전장치: foods 컬렉션에는 생산자(tier 0)만 있어야 한다
+      if (f.tier !== 0) continue;
       let dx = p.x - f.x;
       let dy = p.y - f.y;
       let d = Math.hypot(dx, dy);
