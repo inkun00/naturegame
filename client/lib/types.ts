@@ -16,6 +16,7 @@ export interface EntityState {
   speciesId: number;
   tier: number;
   level: number;
+  heading?: number;
   x: number;
   y: number;
   radius: number;

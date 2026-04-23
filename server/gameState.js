@@ -119,6 +119,7 @@ function addPlayer(socketId, nickname) {
     y: pos.y,
     vx: 0,
     vy: 0,
+    heading: 0, // radians. 0=right, pi/2=down
     radius: radiusOf(species),
     speed: speedOf(tier),
     energy: INITIAL_ENERGY,
@@ -153,6 +154,8 @@ function applyInput(socketId, input) {
   if (len > 0) {
     p.vx = (dx / len) * p.speed;
     p.vy = (dy / len) * p.speed;
+    // 캔버스 좌표계(y 아래로 증가)에 맞춰 각도 계산
+    p.heading = Math.atan2(dy, dx);
   } else {
     p.vx = 0;
     p.vy = 0;
@@ -337,6 +340,7 @@ function serializeEntity(e) {
     speciesId: e.speciesId,
     tier: e.tier,
     level: e.level ?? 0,
+    heading: typeof e.heading === "number" ? Number(e.heading.toFixed(3)) : 0,
     x: Math.round(e.x),
     y: Math.round(e.y),
     radius: e.radius,
