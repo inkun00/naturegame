@@ -290,32 +290,19 @@ export default function GameCanvas({ snapshot, myId, world }: Props) {
       ctx.stroke();
     }
 
-    // 이모지
+    // 이모지 (플레이어는 이동 방향대로 회전)
     const emojiSize = radius * 1.6;
     ctx.font = `${emojiSize}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(sp.emoji, x, y + 1);
-
-    // 방향 포인터 (플레이어만): heading 각도 방향으로 작은 표시
     if (nickname && typeof heading === "number") {
-      const hx = x + Math.cos(heading) * (radius + 10);
-      const hy = y + Math.sin(heading) * (radius + 10);
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(hx, hy);
-      ctx.strokeStyle = isMe
-        ? "rgba(251,191,36,0.95)"
-        : "rgba(241,245,249,0.8)";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(hx, hy, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = isMe
-        ? "rgba(251,191,36,0.95)"
-        : "rgba(241,245,249,0.85)";
-      ctx.fill();
+      ctx.save();
+      ctx.translate(x, y + 1);
+      ctx.rotate(heading);
+      ctx.fillText(sp.emoji, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillText(sp.emoji, x, y + 1);
     }
 
     // 종 이름표 (모든 생물에 표시)
