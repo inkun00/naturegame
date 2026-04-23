@@ -59,6 +59,10 @@ const TICK_HZ = 30;
 const TICK_MS = 1000 / TICK_HZ;
 let lastTick = Date.now();
 
+// 먹이(생산자) 흡입(자석) 효과
+const FOOD_SUCTION_RANGE = 220; // 이 거리 안이면 빨려 들어감
+const FOOD_SUCTION_SPEED = 520; // world unit / sec
+
 function tick() {
   const now = Date.now();
   const dt = Math.min(0.1, (now - lastTick) / 1000);
@@ -84,7 +88,20 @@ function tick() {
 
     // 생산자(foods) 섭취 — 실제 먹이 관계인 경우에만
     for (const f of state.foods.values()) {
-      const d = Math.hypot(p.x - f.x, p.y - f.y);
+      let dx = p.x - f.x;
+      let dy = p.y - f.y;
+      let d = Math.hypot(dx, dy);
+
+      // 가까운 먹이는 플레이어 쪽으로 끌려온다 (먹을 수 있는 경우에만)
+      if (d > 0 && d < FOOD_SUCTION_RANGE && canEat(p.speciesId, f.speciesId)) {
+        const step = Math.min(d, FOOD_SUCTION_SPEED * dt);
+        f.x += (dx / d) * step;
+        f.y += (dy / d) * step;
+        clampWorld(f);
+        dx = p.x - f.x;
+        dy = p.y - f.y;
+        d = Math.hypot(dx, dy);
+      }
       if (d < p.radius + f.radius - 2) {
         if (canEat(p.speciesId, f.speciesId)) {
           feedPlayer(p, f.speciesId);
