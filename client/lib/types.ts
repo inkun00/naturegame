@@ -33,6 +33,7 @@ export interface FoodState {
   x: number;
   y: number;
   radius: number;
+  decayed?: boolean;
 }
 
 export interface HunterState {

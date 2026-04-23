@@ -8,6 +8,7 @@ const {
   WORLD,
   clampWorld,
   canEat,
+  canEatFood,
   radiusOf,
   speedOf,
   randomSpawnPos,
@@ -109,7 +110,7 @@ function resolveAIInteractions() {
   // AI 가 실제 먹이 관계인 식물만 섭취
   for (const ai of state.ais.values()) {
     for (const f of state.foods.values()) {
-      if (!canEat(ai.speciesId, f.speciesId)) continue;
+      if (!canEatFood(ai.speciesId, f)) continue;
       const d = Math.hypot(f.x - ai.x, f.y - ai.y);
       if (d < ai.radius + f.radius) {
         removeFood(f.id);

@@ -25,6 +25,8 @@ const {
   getLeaderboard,
   clampWorld,
   canEat,
+  canEatFood,
+  updateFoodDecay,
   DAMAGE_PER_TICK_FROM_PREDATOR,
   WORLD,
 } = require("./gameState");
@@ -70,6 +72,9 @@ function tick() {
   const dt = Math.min(0.1, (now - lastTick) / 1000);
   lastTick = now;
 
+  // 생산자 부패 상태 업데이트
+  updateFoodDecay(now);
+
   // 1. 플레이어 이동 적용 (서버 권위)
   for (const p of state.players.values()) {
     if (!p.alive) continue;
@@ -101,7 +106,7 @@ function tick() {
         p.tier === 1 &&
         d > 0 &&
         d < PRODUCER_SUCTION_RANGE &&
-        canEat(p.speciesId, f.speciesId)
+        canEatFood(p.speciesId, f)
       ) {
         const step = Math.min(d, PRODUCER_SUCTION_SPEED * dt);
         f.x += (dx / d) * step;
@@ -114,7 +119,7 @@ function tick() {
       // 생산자 섭취 거리: 플레이어 반지름을 쓰지 않고, 식물 크기 기반으로만 판정
       const eatRange = f.radius + PRODUCER_EAT_EXTRA_RANGE;
       if (d < eatRange) {
-        if (canEat(p.speciesId, f.speciesId)) {
+        if (canEatFood(p.speciesId, f)) {
           feedPlayer(p, f.speciesId);
           removeFood(f.id);
         }
