@@ -60,7 +60,7 @@ const TICK_MS = 1000 / TICK_HZ;
 let lastTick = Date.now();
 
 // 1차 소비자만, 아주 가까운 "생산자(식물)" 흡입
-const PRODUCER_SUCTION_RANGE = 140; // 아주 가까운 거리 (소폭 증가)
+const PRODUCER_SUCTION_RANGE = 70; // 아주 가까운 거리
 const PRODUCER_SUCTION_SPEED = 520; // world unit / sec
 
 function tick() {
